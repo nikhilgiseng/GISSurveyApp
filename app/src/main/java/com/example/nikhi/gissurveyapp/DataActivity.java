@@ -3,6 +3,7 @@ package com.example.nikhi.gissurveyapp;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -19,12 +20,15 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
+import static android.R.attr.defaultValue;
 import static com.example.nikhi.gissurveyapp.R.id.ll1;
 
 public class DataActivity extends AppCompatActivity {
     TextView tv;
     Spinner spin;
     Button btn;
+    Double converted_x;
+    Double converted_y;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,6 +39,10 @@ public class DataActivity extends AppCompatActivity {
         spin=(Spinner)findViewById(R.id.spinner);
         btn=(Button)findViewById(R.id.test);
         ArrayList<String> s=getIntent().getStringArrayListExtra("result_details");
+        converted_x=getIntent().getDoubleExtra("converted_x",defaultValue);
+        converted_y=getIntent().getDoubleExtra("converted_y",defaultValue);
+        Toast.makeText(DataActivity.this,converted_x.toString()+"   "+converted_y.toString(),Toast.LENGTH_SHORT).show();
+
         tv.setText("Location Address"+System.getProperty("line.separator")+s.get(0)+"  "+s.get(1)+"   "+s.get(2));
         tv.setGravity(Gravity.CENTER);
 
@@ -313,6 +321,8 @@ public class DataActivity extends AppCompatActivity {
                if(spin.getSelectedItem().toString()!="Select Alley Rating")
                {
                    Toast.makeText(DataActivity.this,"Submitting Edits",Toast.LENGTH_SHORT).show();
+                   String alley_rating=spin.getSelectedItem().toString();
+
                }
                   if(spin.getSelectedItem().toString()=="Select Alley Rating")
                   {

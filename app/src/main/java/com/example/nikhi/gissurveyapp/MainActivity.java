@@ -30,10 +30,11 @@ import com.esri.core.map.Graphic;
 import com.esri.core.symbol.SimpleMarkerSymbol;
 import com.esri.core.tasks.geocode.Locator;
 import com.esri.core.tasks.geocode.LocatorReverseGeocodeResult;
-
+import com.esri.core.geometry.GeometryEngine;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+
 
 public class MainActivity extends AppCompatActivity {
     private Button mapLoad;
@@ -52,10 +53,12 @@ public class MainActivity extends AppCompatActivity {
     public Point mapPoint;
     Map<String,String> addressFields;
     String[] result_details=new String[3];
-    double x=0.0;
-    double y=0.0;
-    double latitude=0.0;
-    double longitude=0.0;
+    double x=0.0;      //STATIC OR DUMMY LAT
+    double y=0.0;      //STATIC OR DUMMY LONG
+    double latitude=0.0;   //STORE LAT
+    double longitude=0.0;   //STORE LONG
+    public GeometryEngine geom;  //USED TO CONVER LAT LONG IN WGS TO CUSTOM CO-ORDINATES
+    Point projected_location; //USED TO SEND THE CURRENT LOCATION TO DATA ACTIVITY
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -150,7 +153,13 @@ locationListener=new LocationListener() {
 
          latitude=location.getLatitude();
          longitude=location.getLongitude();
-        Toast.makeText(MainActivity.this,"Lat: "+latitude+" Long: "+longitude,Toast.LENGTH_SHORT).show();
+
+        geom=new GeometryEngine();
+
+         projected_location=  geom.project(latitude,longitude,mMapView.getSpatialReference());
+
+        Toast.makeText(MainActivity.this,"Projected Location "+projected_location.toString(),Toast.LENGTH_SHORT).show();
+        //Toast.makeText(MainActivity.this,"Lat: "+latitude+" Long: "+longitude,Toast.LENGTH_SHORT).show();
         rGeocode.setEnabled(true);
     }
 
@@ -232,7 +241,12 @@ return result;
 
             ArrayList<String> result_details_list = new ArrayList<String>(Arrays.asList(result_details));
             Intent intent=new Intent(MainActivity.this,DataActivity.class);
+
+            Double converted_x=projected_location.getX();
+            Double converted_y=projected_location.getY();
             intent.putStringArrayListExtra("result_details",result_details_list);
+            intent.putExtra("converted_x",converted_x);
+            intent.putExtra("converted_y",converted_y);
             startActivity(intent);
 
 
