@@ -12,7 +12,7 @@
     <string name="title_activity_tabbed">TabbedActivity</string>
     <string name="title_activity_data">DataActivity</string>
 
-    <string name="rating">Select Alley Rating</string>
+    <!--<string name="rating">Select Alley Rating</string>-->
     <string name="rating0">0-No Overgrowth,Alley Passable</string>
     <string name="rating1">1-Low Overgrowth,Alley Passable</string>
     <string name="rating2">2-Dense High Overgrowth,Alley Passable,No Bulking Items</string>
@@ -23,7 +23,7 @@
 
 
     <string-array name="role">
-        <item>@string/rating</item>
+        <!--<item>@string/rating</item>-->
         <item>@string/rating0</item>
         <item>@string/rating1</item>
         <item>@string/rating2</item>

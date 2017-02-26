@@ -1,7 +1,9 @@
 package com.example.nikhi.gissurveyapp;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
 import android.location.Location;
@@ -11,6 +13,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -100,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 if(tiled_layer==null) {
-    Toast.makeText(MainActivity.this, "Adding Basemap", Toast.LENGTH_SHORT).show();
+   // Toast.makeText(MainActivity.this, "Adding Basemap", Toast.LENGTH_SHORT).show();
     tiled_layer = new ArcGISTiledMapServiceLayer("http://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/DC_Basemap/MapServer");
     mMapView.addLayer(tiled_layer);
 }
@@ -158,7 +161,7 @@ locationListener=new LocationListener() {
 
          projected_location=  geom.project(latitude,longitude,mMapView.getSpatialReference());
 
-        Toast.makeText(MainActivity.this,"Projected Location "+projected_location.toString(),Toast.LENGTH_SHORT).show();
+        //Toast.makeText(MainActivity.this,"Projected Location "+projected_location.toString(),Toast.LENGTH_SHORT).show();
         //Toast.makeText(MainActivity.this,"Lat: "+latitude+" Long: "+longitude,Toast.LENGTH_SHORT).show();
         rGeocode.setEnabled(true);
     }
@@ -178,7 +181,17 @@ locationListener=new LocationListener() {
 
     }
 };
-    gps.requestLocationUpdates(gps.NETWORK_PROVIDER,1000,3,locationListener);
+    //PERMISSION CHECKING HANDLER
+    int permissionCheck = ContextCompat.checkSelfPermission(MainActivity.this,
+            Manifest.permission.ACCESS_COARSE_LOCATION);
+
+    int permissionCheck1 = ContextCompat.checkSelfPermission(MainActivity.this,
+            Manifest.permission.ACCESS_FINE_LOCATION);
+    if(permissionCheck== PackageManager.PERMISSION_GRANTED&&permissionCheck1== PackageManager.PERMISSION_GRANTED)
+    {
+        gps.requestLocationUpdates(gps.NETWORK_PROVIDER,100000,30,locationListener);
+    }
+
 
 }
 
@@ -233,7 +246,7 @@ return result;
             for(Map.Entry<String,String> entry : addressFields.entrySet())
                 address.append(entry.getValue() != null ? entry.getValue() + " " : "");
 
-            Toast.makeText(MainActivity.this,"Address:  "+addressFields.get("Address").toString()+"  "+addressFields.get("City").toString()+"  "+addressFields.get("Region").toString(),Toast.LENGTH_SHORT).show();
+            //Toast.makeText(MainActivity.this,"Address:  "+addressFields.get("Address").toString()+"  "+addressFields.get("City").toString()+"  "+addressFields.get("Region").toString(),Toast.LENGTH_SHORT).show();
 
             result_details[0]=addressFields.get("Address").toString();
             result_details[1]=addressFields.get("City").toString();

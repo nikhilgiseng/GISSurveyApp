@@ -1,11 +1,14 @@
 package com.example.nikhi.gissurveyapp;
 
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
@@ -18,7 +21,23 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.esri.android.map.FeatureLayer;
+import com.esri.core.geodatabase.GeodatabaseFeature;
+import com.esri.core.geodatabase.GeodatabaseFeatureServiceTable;
+import com.esri.core.geometry.Point;
+import com.esri.core.map.CallbackListener;
+import 	com.esri.core.geodatabase.Geodatabase;
+import com.esri.core.map.FeatureEditResult;
+import com.esri.core.map.Graphic;
+import com.esri.core.symbol.SimpleMarkerSymbol;
+import com.esri.core.table.FeatureTable;
+import com.esri.android.map.ags.ArcGISFeatureLayer;
 
 import static android.R.attr.defaultValue;
 import static com.example.nikhi.gissurveyapp.R.id.ll1;
@@ -27,13 +46,18 @@ public class DataActivity extends AppCompatActivity {
     TextView tv;
     Spinner spin;
     Button btn;
-    Double converted_x;
-    Double converted_y;
+    public GeodatabaseFeatureServiceTable featureServiceTable;
+    public FeatureLayer featureLayer;
+    public ArcGISFeatureLayer fl;
+    Double converted_x;   //STORE LAT FROM PREVIOUS ACTIVITY
+    Double converted_y;   //STORE LONG FROM PREVIOUS ACTIVITY
+    Point edit_geometry;  //NEW MAP POINT FOR EDITING
+    String alley_rating; //USED TO STORE RATING OF ALLEY
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        final Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         tv=(TextView)findViewById(R.id.textView);
         spin=(Spinner)findViewById(R.id.spinner);
@@ -41,7 +65,7 @@ public class DataActivity extends AppCompatActivity {
         ArrayList<String> s=getIntent().getStringArrayListExtra("result_details");
         converted_x=getIntent().getDoubleExtra("converted_x",defaultValue);
         converted_y=getIntent().getDoubleExtra("converted_y",defaultValue);
-        Toast.makeText(DataActivity.this,converted_x.toString()+"   "+converted_y.toString(),Toast.LENGTH_SHORT).show();
+       // Toast.makeText(DataActivity.this,converted_x.toString()+"   "+converted_y.toString(),Toast.LENGTH_SHORT).show();
 
         tv.setText("Location Address"+System.getProperty("line.separator")+s.get(0)+"  "+s.get(1)+"   "+s.get(2));
         tv.setGravity(Gravity.CENTER);
@@ -221,13 +245,13 @@ public class DataActivity extends AppCompatActivity {
 
                 switch(rating_select) {
                     case "0-No Overgrowth,Alley Passable":
-                       Toast.makeText(DataActivity.this,"0",Toast.LENGTH_SHORT).show();
+
                         linear.removeAllViews();
                         linear.addView(cb1);
 
                         break;
                     case "1-Low Overgrowth,Alley Passable":
-                        Toast.makeText(DataActivity.this,"1",Toast.LENGTH_SHORT).show();
+
                         linear.removeAllViews();
                         linear.addView(cb2);
                         linear.addView(cb3);
@@ -240,7 +264,7 @@ public class DataActivity extends AppCompatActivity {
 
                         break;
                     case "2-Dense High Overgrowth,Alley Passable,No Bulking Items":
-                        Toast.makeText(DataActivity.this,"2",Toast.LENGTH_SHORT).show();
+
                         linear.removeAllViews();
                         linear.addView(cb9);
                         linear.addView(cb10);
@@ -253,7 +277,7 @@ public class DataActivity extends AppCompatActivity {
 
                         break;
                     case "3-Dense High Overgrowth,Alley Passable,Minor Bulk Items":
-                        Toast.makeText(DataActivity.this,"3",Toast.LENGTH_SHORT).show();
+
                         linear.removeAllViews();
                         linear.addView(cb17);
                         linear.addView(cb18);
@@ -266,7 +290,7 @@ public class DataActivity extends AppCompatActivity {
 
                         break;
                     case "4-Moderate to Dense Overgrowth,Alley Moderately Passable,Large Bulk Items Present":
-                        Toast.makeText(DataActivity.this,"4",Toast.LENGTH_SHORT).show();
+
                         linear.removeAllViews();
                         linear.addView(cb25);
                         linear.addView(cb26);
@@ -279,7 +303,7 @@ public class DataActivity extends AppCompatActivity {
 
                         break;
                     case "5-Serious Overgrowth, Impassable Alley":
-                        Toast.makeText(DataActivity.this,"5",Toast.LENGTH_SHORT).show();
+
                         linear.removeAllViews();
                         linear.addView(cb32);
                         linear.addView(cb33);
@@ -291,7 +315,7 @@ public class DataActivity extends AppCompatActivity {
 
                         break;
                     case "6-Unimproved Alley":
-                        Toast.makeText(DataActivity.this,"6",Toast.LENGTH_SHORT).show();
+
                         linear.removeAllViews();
                         linear.addView(cb39);
                         linear.addView(cb40);
@@ -320,14 +344,49 @@ public class DataActivity extends AppCompatActivity {
            public void onClick(View v) {
                if(spin.getSelectedItem().toString()!="Select Alley Rating")
                {
-                   Toast.makeText(DataActivity.this,"Submitting Edits",Toast.LENGTH_SHORT).show();
-                   String alley_rating=spin.getSelectedItem().toString();
+                  // Toast.makeText(DataActivity.this,"Submitting Edits",Toast.LENGTH_SHORT).show();
+                   String currentDate = DateFormat.getDateInstance().format(new Date());
+                 //  DateTimeFormatter dtf  = DateTimeFormatter.ofPattern("MMM dd yyyy HH:mm:ss.SSS zzz");
+                   alley_rating=spin.getSelectedItem().toString();
+                   edit_geometry=new Point(converted_x,converted_y);
+                   Point dummyPoint=new Point(405452.1073964834,136488.4160027206);
+                   Map<String, Object> attributes = new HashMap<String, Object>();
+                   attributes.put("Alley_Rating",alley_rating);
+                   attributes.put("DATE",currentDate);
+                   attributes.put("ROUTE"," ");
+                   attributes.put("monitor"," ");
 
+                 fl=new ArcGISFeatureLayer("http://maps2.dcgis.dc.gov/dcgis/rest/services/DPW/SA_2016_Pics/FeatureServer/0", ArcGISFeatureLayer.MODE.ONDEMAND);
+                   Graphic newFeatureGraphic = new Graphic(edit_geometry, new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE),attributes);
+
+                   Graphic[] adds = {newFeatureGraphic};
+                   fl.applyEdits(adds, null, null, new CallbackListener<FeatureEditResult[][]>() {
+                       @Override
+                       public void onCallback(FeatureEditResult[][] featureEditResults) {
+                          // if (featureEditResults[0] != null && featureEditResults[0][0] != null) {
+                           long fid=featureEditResults[0][0].getObjectId();
+                           String OID =Long.toString(fid);
+                           AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(DataActivity.this);
+                           dlgAlert.setMessage("Object ID of the Added Feature is : "+OID);
+                           dlgAlert.setTitle("New Feature Added");
+                           dlgAlert.setPositiveButton("Ok",
+                                   new DialogInterface.OnClickListener() {
+                                       public void onClick(DialogInterface dialog, int which) {
+                                           //dismiss the dialog
+                                       }
+                                   });
+                           dlgAlert.setCancelable(true);
+                           dlgAlert.create().show();
+                         //  }
+                       }
+
+                       @Override
+                       public void onError(Throwable throwable) {
+                           Toast.makeText(DataActivity.this,"ERROR SAVING EDITS",Toast.LENGTH_SHORT).show();
+                       }
+                   });
                }
-                  if(spin.getSelectedItem().toString()=="Select Alley Rating")
-                  {
-                      Toast.makeText(DataActivity.this,"Select Alley Rating to perform edits",Toast.LENGTH_SHORT).show();
-                  }
+
            }
        });
     }
