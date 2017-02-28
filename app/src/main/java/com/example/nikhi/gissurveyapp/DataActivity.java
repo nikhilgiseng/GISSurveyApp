@@ -1,8 +1,11 @@
 package com.example.nikhi.gissurveyapp;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -461,7 +464,10 @@ public class DataActivity extends AppCompatActivity {
              //  Intent cameraIntent=new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
               // startActivityForResult(cameraIntent,100);
                Toast.makeText(DataActivity.this,"GALLERY",Toast.LENGTH_SHORT).show();
-
+               Intent intent = new Intent();
+               intent.setType("image/*");
+               intent.setAction(Intent.ACTION_GET_CONTENT);
+               startActivityForResult(Intent.createChooser(intent, "Select Image to attach"), 1);
            }
        });
     }
@@ -516,9 +522,52 @@ public class DataActivity extends AppCompatActivity {
 
         return mediaFile;
     }
+    //FUNCTION TO GET REAL PATH FROM URI
+    public String getPath(Uri uri) {
+        String[] projection = { MediaStore.Images.Media.DATA };
+        @SuppressWarnings("deprecation")
+        Cursor cursor = managedQuery(uri, projection, null, null, null);
+        int column_index = cursor
+                .getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
+    }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         // if the result is capturing Image
+        if(requestCode==1&&resultCode==RESULT_OK&&data!=null)
+        {
+            long id=edits_result[0][0].getObjectId();
+            int objectid=(int)id;
+
+           Uri uri1=data.getData();
+            //String s = getRealPathFromURI(selectedImageUri);
+           File fromGallery=new File(getPath(uri1));
+
+
+            fl.addAttachment(objectid, fromGallery,"image/jpg", new CallbackListener<FeatureEditResult>() {
+                @Override
+                public void onCallback(FeatureEditResult featureEditResult) {
+                    DataActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(),
+                                    "Successfully added attachment", Toast.LENGTH_SHORT)
+                                    .show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    Toast.makeText(getApplicationContext(),
+                            "ERROR ADDING attachment", Toast.LENGTH_SHORT)
+                            .show();
+                }
+
+            });
+        }
+
         if (requestCode == CAMERA_CAPTURE_IMAGE_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
 
