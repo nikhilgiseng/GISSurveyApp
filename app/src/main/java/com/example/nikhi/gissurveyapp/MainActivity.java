@@ -187,10 +187,10 @@ locationListener=new LocationListener() {
 
     int permissionCheck1 = ContextCompat.checkSelfPermission(MainActivity.this,
             Manifest.permission.ACCESS_FINE_LOCATION);
-    if(permissionCheck== PackageManager.PERMISSION_GRANTED&&permissionCheck1== PackageManager.PERMISSION_GRANTED)
-    {
-        gps.requestLocationUpdates(gps.NETWORK_PROVIDER,100000,30,locationListener);
-    }
+//    if(permissionCheck== PackageManager.PERMISSION_GRANTED&&permissionCheck1== PackageManager.PERMISSION_GRANTED)
+//    {
+        gps.requestLocationUpdates(gps.NETWORK_PROVIDER,0,0,locationListener);
+//    }
 
 
 }

@@ -4,13 +4,17 @@ import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.ContactsContract;
+import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
@@ -21,10 +25,14 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import com.esri.android.map.FeatureLayer;
@@ -39,10 +47,13 @@ import com.esri.core.symbol.SimpleMarkerSymbol;
 import com.esri.core.table.FeatureTable;
 import com.esri.android.map.ags.ArcGISFeatureLayer;
 
+import static android.R.attr.data;
 import static android.R.attr.defaultValue;
+import static com.example.nikhi.gissurveyapp.R.id.content_data;
 import static com.example.nikhi.gissurveyapp.R.id.ll1;
 
 public class DataActivity extends AppCompatActivity {
+    private static File mediaFile;
     TextView tv;
     Spinner spin;
     Button btn;
@@ -53,6 +64,13 @@ public class DataActivity extends AppCompatActivity {
     Double converted_y;   //STORE LONG FROM PREVIOUS ACTIVITY
     Point edit_geometry;  //NEW MAP POINT FOR EDITING
     String alley_rating; //USED TO STORE RATING OF ALLEY
+    FeatureEditResult[][] edits_result;
+
+    private static final int CAMERA_CAPTURE_IMAGE_REQUEST_CODE = 100;
+    public static final int MEDIA_TYPE_IMAGE = 1;
+    private Uri fileUri;
+    //File mediaFile;
+    private static final String IMAGE_DIRECTORY_NAME = "Download";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -339,6 +357,7 @@ public class DataActivity extends AppCompatActivity {
             }
         });
 
+
        btn.setOnClickListener(new View.OnClickListener() {
            @Override
            public void onClick(View v) {
@@ -364,20 +383,63 @@ public class DataActivity extends AppCompatActivity {
                        @Override
                        public void onCallback(FeatureEditResult[][] featureEditResults) {
                           // if (featureEditResults[0] != null && featureEditResults[0][0] != null) {
-                           long fid=featureEditResults[0][0].getObjectId();
+
+                           edits_result=featureEditResults;
+                           long fid=edits_result[0][0].getObjectId();
                            String OID =Long.toString(fid);
-                           AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(DataActivity.this);
-                           dlgAlert.setMessage("Object ID of the Added Feature is : "+OID);
-                           dlgAlert.setTitle("New Feature Added");
-                           dlgAlert.setPositiveButton("Ok",
-                                   new DialogInterface.OnClickListener() {
+
+                           DataActivity.this.runOnUiThread(new Runnable() {
+                               @Override
+                               public void run() {
+                                   long fid=edits_result[0][0].getObjectId();
+                                   String OID =Long.toString(fid);
+
+                                   //PRINTING SUCCESS MESSAGE
+                                   Toast.makeText(DataActivity.this,"Saved Edits Successfully",Toast.LENGTH_SHORT).show();
+                                   AlertDialog.Builder success=new AlertDialog.Builder(DataActivity.this);
+                                   success.setMessage("Object ID of the Added Feature is : "+OID);
+                                   success.setTitle("New Feature Added");
+                                   success.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                       @Override
                                        public void onClick(DialogInterface dialog, int which) {
-                                           //dismiss the dialog
+                                           //ALERT BUILDER FOR ATTACHMENTS ADDITION
+
+                                           AlertDialog.Builder alert_attach=new AlertDialog.Builder(DataActivity.this);
+                                           alert_attach.setMessage("Add an Image to to the created Feature");
+                                           alert_attach.setTitle("Choose one of the below options to add an image.");
+                                           alert_attach.setPositiveButton("Open Camera app", new DialogInterface.OnClickListener() {
+                                               @Override
+                                               public void onClick(DialogInterface dialog, int which) {
+
+                                                   openCameraToGetImage();
+                                               }
+                                           });
+
+
+                                           alert_attach.setNegativeButton("Choose From Gallery", new DialogInterface.OnClickListener() {
+                                               @Override
+                                               public void onClick(DialogInterface dialog, int which) {
+                                                   openGalleyToGetImage();
+                                               }
+                                           });
+                                           alert_attach.setCancelable(true);
+                                           alert_attach.create().show();
                                        }
                                    });
-                           dlgAlert.setCancelable(true);
-                           dlgAlert.create().show();
-                         //  }
+                                   success.setCancelable(true);
+                                   success.create().show();
+
+
+
+
+
+
+                               }
+
+
+
+                           });
+
                        }
 
                        @Override
@@ -391,4 +453,116 @@ public class DataActivity extends AppCompatActivity {
        });
     }
 
+    public void openGalleyToGetImage()
+    {
+       DataActivity.this.runOnUiThread(new Runnable() {
+           @Override
+           public void run() {
+             //  Intent cameraIntent=new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+              // startActivityForResult(cameraIntent,100);
+               Toast.makeText(DataActivity.this,"GALLERY",Toast.LENGTH_SHORT).show();
+
+           }
+       });
+    }
+
+    public void openCameraToGetImage()
+    {
+        DataActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(DataActivity.this,"CAMERA",Toast.LENGTH_SHORT).show();
+                Intent cameraIntent=new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                fileUri = getOutputMediaFileUri(MEDIA_TYPE_IMAGE);
+                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
+                startActivityForResult(cameraIntent,100);
+            }
+        });
+
+
+
+    }
+    public Uri getOutputMediaFileUri(int type) {
+        return Uri.fromFile(getOutputMediaFile(type));
+    }
+
+    private static File getOutputMediaFile(int type) {
+
+        // External sdcard location
+        File mediaStorageDir = new File(
+                Environment
+                        .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                IMAGE_DIRECTORY_NAME);
+
+        // Create the storage directory if it does not exist
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                Log.d(IMAGE_DIRECTORY_NAME, "Oops! Failed create "
+                        + IMAGE_DIRECTORY_NAME + " directory");
+                return null;
+            }
+        }
+
+        // Create a media file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
+                Locale.getDefault()).format(new Date());
+
+        if (type == MEDIA_TYPE_IMAGE) {
+            mediaFile = new File(mediaStorageDir.getPath() + File.separator
+                    + "IMG_" + timeStamp + ".jpg");
+        }  else {
+            return null;
+        }
+
+        return mediaFile;
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // if the result is capturing Image
+        if (requestCode == CAMERA_CAPTURE_IMAGE_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+
+                Toast.makeText(getApplicationContext(),
+                        "Successfully captured Image", Toast.LENGTH_SHORT)
+                        .show();
+                long id=edits_result[0][0].getObjectId();
+                int objectid=(int)id;
+
+
+
+
+                fl.addAttachment(objectid, mediaFile,"image/jpg", new CallbackListener<FeatureEditResult>() {
+                    @Override
+                    public void onCallback(FeatureEditResult featureEditResult) {
+                    DataActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(),
+                                    "Successfully added attachment", Toast.LENGTH_SHORT)
+                                    .show();
+                        }
+                    });
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        Toast.makeText(getApplicationContext(),
+                                "ERROR ADDING attachment", Toast.LENGTH_SHORT)
+                                .show();
+                    }
+
+                });
+            } else if (resultCode == RESULT_CANCELED) {
+                // user cancelled Image capture
+                Toast.makeText(getApplicationContext(),
+                        "User cancelled image capture", Toast.LENGTH_SHORT)
+                        .show();
+            } else {
+                // failed to capture image
+                Toast.makeText(getApplicationContext(),
+                        "Sorry! Failed to capture image", Toast.LENGTH_SHORT)
+                        .show();
+            }
+        }
+    }
 }
